@@ -2,6 +2,22 @@
 
 All notable changes to `@mostajs/replica-monitor` will be documented in this file.
 
+## [0.2.1] — 2026-04-15
+
+### Changed — `mostajs-monitor` bin now uses `readTreeManager` by default
+
+The standalone CLI previously tried to rehydrate a live `ReplicationManager`
+via `loadFromFile()`, which fails silently when credentials in the tree
+have been masked — the dashboard showed zero replicas even when the tree
+had them.
+
+Now the CLI reads the tree JSON directly (`readTreeManager({ tree })`) —
+no DB connection, no driver dependencies, no masked-URI problem. If you
+need live lag/state, wire the monitor inside your replicator service
+process via `scaffoldMonitorService` (unchanged behaviour).
+
+New flag : `--no-watch` disables `fs.watch` on the tree (polling only).
+
 ## [0.2.0] — 2026-04-15
 
 ### Added — read-only tree-backed mode
