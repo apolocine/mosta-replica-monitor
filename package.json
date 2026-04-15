@@ -1,0 +1,57 @@
+{
+  "name": "@mostajs/replica-monitor",
+  "version": "0.1.0",
+  "description": "Live web dashboard for @mostajs/replicator — master/slave health, lag, CDC rules, activity stream. Zero external deps, pure Node http + SSE + vanilla JS.",
+  "author": "Dr Hamid MADANI <drmdh@msn.com>",
+  "license": "AGPL-3.0-or-later",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "bin": {
+    "mostajs-monitor": "dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist"
+  },
+  "peerDependencies": {
+    "@mostajs/replicator": "^0.1.0"
+  },
+  "peerDependenciesMeta": {
+    "@mostajs/replicator": { "optional": true }
+  },
+  "devDependencies": {
+    "@mostajs/replicator": "^0.1.1",
+    "@mostajs/mproject": "^1.0.7",
+    "@mostajs/orm": "^1.10.0",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.4.0"
+  },
+  "keywords": [
+    "mostajs",
+    "replicator",
+    "cqrs",
+    "cdc",
+    "monitoring",
+    "dashboard",
+    "master-slave"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/apolocine/mosta-replica-monitor.git"
+  },
+  "homepage": "https://github.com/apolocine/mosta-replica-monitor#readme"
+}
