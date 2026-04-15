@@ -2,6 +2,39 @@
 
 All notable changes to `@mostajs/replica-monitor` will be documented in this file.
 
+## [0.2.0] — 2026-04-15
+
+### Added — read-only tree-backed mode
+
+- **`readTreeManager({ tree })`** — reads `replicator-tree.json` directly
+  and returns a `ReplicationManagerLike` instance. Works **without any DB
+  connections** and **without the `@mostajs/replicator` runtime** — the
+  monitor becomes a standalone web server that just watches a file.
+  Auto-refreshes when the file changes (via `fs.watch`, disable with
+  `watch: false`).
+- **`scaffoldMonitorService({ projectDir, force? })`** — programmatic +
+  CLI scaffolder (`mostajs-monitor-scaffold`) that emits a ready-to-run
+  `services/monitor.mjs`. The emitted service reads env, reads the tree,
+  starts the dashboard — one line to add to your `package.json` :
+  `"monitor": "node services/monitor.mjs"`.
+- New bin `mostajs-monitor-scaffold`.
+
+### Rationale
+
+In v0.1.0, spinning up the monitor required instancing a
+`ReplicationManager` with DB credentials. In 0.2.0, the monitor can run
+on a shared team laptop reading a committed `replicator-tree.json`
+(credentials already masked by the replicator's own `saveToFile`). This
+makes it usable for operations, not just developers.
+
+### Tests
+
+- `test-tree-reader.mjs` — **10/10 passing** : tree parsing, listProjects,
+  getReplicaStatus per project, listRules, getReadRouting, then startMonitor
+  with the tree-backed manager and validates `/api/health`, `/api/replicas`,
+  `/api/rules`.
+- Existing `test-monitor-e2e.sh` — **11/11 passing** (no regression).
+
 ## [0.1.0] — 2026-04-15
 
 ### Initial release

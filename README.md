@@ -23,6 +23,40 @@ All three tabs refresh every 2 s via polling + receive push events via SSE.
 npm install @mostajs/replica-monitor @mostajs/replicator
 ```
 
+## Quick start — tree-only (since v0.2.0)
+
+Zero setup. The monitor reads your committed `replicator-tree.json` directly — no DB connections, no `@mostajs/replicator` runtime needed at the monitor process :
+
+```ts
+import { startMonitor, readTreeManager } from '@mostajs/replica-monitor'
+
+const manager = readTreeManager({ tree: '.mostajs/replicator-tree.json' })
+const handle  = await startMonitor({ manager, port: 14499 })
+console.log('dashboard at', handle.url)
+```
+
+The tree file is auto-reloaded via `fs.watch` when it changes — no polling race. Credentials inside the tree are already masked by `ReplicationManager.saveToFile()`, so this is safe to commit and expose.
+
+## Scaffolding (since v0.2.0)
+
+Rather than write your own monitor bootstrap, use the scaffolder to drop a ready-to-run `services/monitor.mjs` into your project :
+
+```bash
+npx mostajs-monitor-scaffold --dir .
+```
+
+Then add to `package.json` :
+
+```json
+"scripts": {
+  "monitor": "node services/monitor.mjs"
+}
+```
+
+Run : `npm run monitor` → opens on `http://localhost:14499`.
+
+`@mostajs/orm-cli@0.5.3+` wires the scaffolding + `package.json` patch + `concurrently` install via menu `r → s`.
+
 ## Usage — programmatic
 
 ```ts

@@ -1,7 +1,7 @@
 {
   "name": "@mostajs/replica-monitor",
-  "version": "0.1.0",
-  "description": "Live web dashboard for @mostajs/replicator — master/slave health, lag, CDC rules, activity stream. Zero external deps, pure Node http + SSE + vanilla JS.",
+  "version": "0.2.0",
+  "description": "Live web dashboard for @mostajs/replicator — reads the replicator-tree.json directly (no DB connections required). Ships with a scaffolder that emits services/monitor.mjs into any project.",
   "author": "Dr Hamid MADANI <drmdh@msn.com>",
   "license": "AGPL-3.0-or-later",
   "type": "module",
@@ -14,7 +14,8 @@
     }
   },
   "bin": {
-    "mostajs-monitor": "dist/cli.js"
+    "mostajs-monitor": "dist/cli.js",
+    "mostajs-monitor-scaffold": "dist/cli-scaffold.js"
   },
   "files": [
     "dist",
