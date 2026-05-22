@@ -1,6 +1,6 @@
 {
   "name": "@mostajs/replica-monitor",
-  "version": "0.2.1",
+  "version": "0.3.2",
   "description": "Live web dashboard for @mostajs/replicator — reads the replicator-tree.json directly (no DB connections required). Ships with a scaffolder that emits services/monitor.mjs into any project.",
   "author": "Dr Hamid MADANI <drmdh@msn.com>",
   "license": "AGPL-3.0-or-later",
@@ -21,7 +21,8 @@
     "dist",
     "LICENSE",
     "README.md",
-    "CHANGELOG.md"
+    "CHANGELOG.md",
+    "llms.txt"
   ],
   "scripts": {
     "build": "tsc",
@@ -32,14 +33,16 @@
     "@mostajs/replicator": "^0.1.0"
   },
   "peerDependenciesMeta": {
-    "@mostajs/replicator": { "optional": true }
+    "@mostajs/replicator": {
+      "optional": true
+    }
   },
   "devDependencies": {
-    "@mostajs/replicator": "^0.1.1",
     "@mostajs/mproject": "^1.0.7",
     "@mostajs/orm": "^1.10.0",
+    "@mostajs/replicator": "^0.1.1",
     "@types/node": "^20.0.0",
-    "typescript": "^5.4.0"
+    "typescript": "^5.9.3"
   },
   "keywords": [
     "mostajs",

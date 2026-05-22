@@ -1,0 +1,102 @@
+# @mostajs/replica-monitor — fiche LLM
+> Dashboard web live pour @mostajs/replicator — santé master/slave, lag, règles CDC, flux d'activité.
+
+- Version: 0.3.2 · Licence: AGPL-3.0-or-later · Auteur: Dr Hamid MADANI <drmdh@msn.com>
+- Chemin: mostajs/mosta-replica-monitor · Statut audit: complet (dist/)
+
+## RÔLE
+Service de monitoring pour @mostajs/replicator. Sert un dashboard web (HTML + SSE + JS vanilla,
+zéro dépendance externe : pur `node:http`) montrant l'état des répliques (rôle, dialecte, lag
+live + sparkline, usage du pool), les règles CDC (stats de dernière synchro) et un flux
+d'activité streamé. Peut lire directement un `replicator-tree.json` committé (mode tree-only,
+sans connexion DB ni runtime replicator) ou observer une instance ReplicationManager vivante.
+Le couplage à @mostajs/replicator est en duck-typing (interface `ReplicationManagerLike`),
+donc aucune dépendance dure. Embarque un scaffolder qui émet `services/monitor.mjs`.
+
+## INSTALLATION
+npm install @mostajs/replica-monitor @mostajs/replicator
+Binaires :
+- `mostajs-monitor` → dist/cli.js — serveur standalone :
+    npx mostajs-monitor --tree .mostajs/replicator-tree.json --runtime . --port 14499 [--token SECRET]
+- `mostajs-monitor-scaffold` → dist/cli-scaffold.js — émet services/monitor.mjs :
+    npx mostajs-monitor-scaffold --dir .
+
+## EXPORTS
+- Fonctions : startMonitor, readTreeManager, scaffoldMonitorService
+- Types : MonitorConfig, MonitorHandle, ActivityEvent, ReplicationManagerLike, ReplicaInfo,
+  ReplicationRuleLike, SyncStatsLike, TreeReaderOptions, TreeReaderHandle,
+  MonitorScaffoldOptions, MonitorScaffoldResult
+
+## API — SIGNATURES
+- startMonitor(cfg: MonitorConfig): Promise<MonitorHandle>  — démarre le serveur HTTP/SSE.
+- readTreeManager(opts: TreeReaderOptions): TreeReaderHandle  — adaptateur lisant un replicator-tree.json,
+  conforme à ReplicationManagerLike ; auto-reload via fs.watch.
+- scaffoldMonitorService(opts?: MonitorScaffoldOptions): MonitorScaffoldResult  — émet services/monitor.mjs.
+
+## TYPES CLÉS
+- MonitorConfig { manager: ReplicationManagerLike; port? (def 14499); host? (def '127.0.0.1');
+    authToken?; pollMs? (def 2000); activityBufferSize? (def 200); onEvent?: (ev: ActivityEvent)=>void }
+- MonitorHandle { url: string; stop: () => Promise<void> }
+- ReplicationManagerLike { listProjects?: ()=>string[]; getReplicaStatus: (project)=>ReplicaInfo[];
+    getReadRouting?: (project)=>string; listRules: ()=>ReplicationRuleLike[];
+    getSyncStats?: (ruleName)=>SyncStatsLike|undefined }
+- ReplicaInfo { name; role: 'master'|'slave'; dialect?; lag?: number|null;
+    state?: 'up'|'down'|'connecting'|'unknown'; poolUsage?: { in, out }; lastPing? }
+- ReplicationRuleLike { name; source; target; mode; collections: string[]; conflictResolution; enabled }
+- SyncStatsLike { inserted?; updated?; deleted?; failed?; durationMs?; lastRun?; lastSync?;
+    totalSynced?; totalErrors?; lastError?; details?: Array<{collection,created,updated,deleted,skipped,errors}> }
+- ActivityEvent (union discriminée sur `type`) : 'replica.added' | 'replica.removed' |
+    'replica.promoted' | 'replica.state' | 'rule.added' | 'rule.removed' | 'rule.sync.start' |
+    'rule.sync.done' | 'error'  (chaque variante porte project/replica/rule/stats/ts selon le type)
+- TreeReaderOptions { tree: string; watch?: boolean (def true) }
+- TreeReaderHandle extends ReplicationManagerLike { stop(): void; refresh(): void }
+- MonitorScaffoldOptions { projectDir?; servicePath?; dryRun?; force? }
+- MonitorScaffoldResult { wrote; path; action: 'created'|'skipped (exists)'|'overwritten'|'dry-run'; content }
+
+## ENDPOINTS HTTP (servis par startMonitor)
+- GET /                  → dashboard HTML
+- GET /api/health        → { ok: true, ts }
+- GET /api/replicas      → { [project]: ReplicaInfo[] }
+- GET /api/rules         → Array<Rule & { lastStats? }>
+- GET /api/routing       → { [project]: 'round-robin'|'least-lag'|'random' }
+- GET /api/events        → N derniers events (def 200)
+- GET /api/stream        → flux SSE d'ActivityEvent
+
+## PATTERN
+```ts
+// Mode tree-only — aucune connexion DB, lit le fichier committé
+import { startMonitor, readTreeManager } from '@mostajs/replica-monitor'
+
+const manager = readTreeManager({ tree: '.mostajs/replicator-tree.json' })
+const handle  = await startMonitor({ manager, port: 14499 })
+console.log('dashboard:', handle.url)
+
+// Mode programmatique — observe un ReplicationManager vivant
+import { ReplicationManager } from '@mostajs/replicator'
+const rm = new ReplicationManager(/* ... */)
+const h = await startMonitor({ manager: rm, port: 14499, authToken: 'my-secret', pollMs: 2000 })
+await h.stop()
+```
+
+## DÉPEND DE
+- @mostajs/replicator (peer ^0.1.0, OPTIONNELLE) — couplage uniquement en duck-typing via
+  l'interface ReplicationManagerLike ; tout objet conforme (y compris un mock) fonctionne.
+- Aucune dépendance runtime externe (pur node:http, SSE, JS vanilla).
+
+## PIÈGES
+- Le couplage à replicator est duck-typé : `manager` doit exposer au minimum `getReplicaStatus`
+  et `listRules` (les autres méthodes sont optionnelles).
+- Bind par défaut sur `127.0.0.1` (non joignable depuis le réseau) ; pour exposer, changer `host`
+  ET définir `authToken`. L'auth Bearer s'applique à TOUS les endpoints, SSE inclus — passer le
+  token via header `Authorization: Bearer <t>` ou query `?token=<t>`.
+- Les events sont SYNTHÉTIQUES : déduits par diff du snapshot toutes les `pollMs`. Les events
+  temps réel `rule.sync.start`/`rule.sync.done` ne sont pas captés automatiquement (un
+  `handle.emit()` est sur la roadmap v0.2).
+- Mode tree-only : les credentials du replicator-tree.json sont déjà masqués par
+  `ReplicationManager.saveToFile()` — sûr à committer/exposer.
+- `scaffoldMonitorService` ne patche pas package.json — ajouter `scripts.monitor` à la main.
+
+## RÉFÉRENCES
+- README.md (modes tree-only/programmatique/CLI, endpoints, sécurité, roadmap)
+- CHANGELOG.md
+- LICENSE
